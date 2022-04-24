@@ -10,9 +10,9 @@ import org.springframework.web.servlet.mvc.method.annotation.ResponseEntityExcep
 public class RestExceptionHandler extends ResponseEntityExceptionHandler {
 
 
-    @ExceptionHandler(value = RuntimeException.class)
-    public ResponseEntity<Object> exception(Exception exception) {
-        CustomException customException = new CustomException(600 , exception.getMessage());
+    @ExceptionHandler(value = CustomException.class)
+    public ResponseEntity<Object> exception(CustomException exception) {
+        CustomException customException = new CustomException(exception.getStatusCode() , exception.getMessage());
         return new ResponseEntity<>(customException, HttpStatus.BAD_REQUEST);
     }
 }

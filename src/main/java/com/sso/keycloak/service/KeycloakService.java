@@ -1,8 +1,7 @@
 package com.sso.keycloak.service;
 
-import com.sso.keycloak.dto.AssignRoleDto;
-import com.sso.keycloak.dto.UserCredentials;
-import com.sso.keycloak.dto.UserDTO;
+import com.sso.keycloak.dto.*;
+import com.sso.keycloak.exception.CustomException;
 import com.sso.keycloak.mapper.UserMapper;
 import org.apache.http.HttpResponse;
 import org.apache.http.NameValuePair;
@@ -12,13 +11,11 @@ import org.apache.http.client.methods.HttpPost;
 import org.apache.http.impl.client.HttpClientBuilder;
 import org.apache.http.message.BasicNameValuePair;
 import org.keycloak.admin.client.Keycloak;
+import org.keycloak.admin.client.resource.GroupResource;
 import org.keycloak.admin.client.resource.RealmResource;
 import org.keycloak.admin.client.resource.UserResource;
 import org.keycloak.admin.client.resource.UsersResource;
-import org.keycloak.representations.idm.ClientRepresentation;
-import org.keycloak.representations.idm.CredentialRepresentation;
-import org.keycloak.representations.idm.RoleRepresentation;
-import org.keycloak.representations.idm.UserRepresentation;
+import org.keycloak.representations.idm.*;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
@@ -99,9 +96,8 @@ public class KeycloakService {
     }
 
 
-    public int createUserInKeyCloak(UserDTO userDTO) {
+    public UserDTO createUserInKeyCloak(UserDTO userDTO) {
         int statusId = 0;
-        try {
             RealmResource realmResource = keycloak.realm(REALM);
             UsersResource userRessource = realmResource.users();
             UserRepresentation user = new UserRepresentation();
@@ -129,17 +125,12 @@ public class KeycloakService {
                 RoleRepresentation savedRoleRepresentation = realmResource.roles().get("user").toRepresentation();
                 realmResource.users().get(userId).roles().realmLevel().add(Arrays.asList(savedRoleRepresentation));
                 System.out.println("Username==" + userDTO.getUsername() + " created in keycloak successfully");
+                return userDTO;
             } else if (statusId == 409) {
-                System.out.println("Username==" + userDTO.getUsername() + " already present in keycloak");
+                throw new CustomException(409 , "the user is currently exists");
             } else {
-                System.out.println("Username==" + userDTO.getUsername() + " could not be created in keycloak");
+                throw new CustomException(statusId , "the user could not be created in keycloak");
             }
-
-        } catch (Exception e) {
-            e.printStackTrace();
-
-        }
-        return statusId;
     }
 
     public String getByRefreshToken(String refreshToken) {
@@ -333,8 +324,42 @@ public class KeycloakService {
     }
 
 
+    public List<GroupRepresentation> getAllGroups(){
+        return keycloak.realm(REALM).groups().groups();
+    }
 
+    public String createGroup(String name){
+        GroupRepresentation group = new  GroupRepresentation();
+        group.setName(name);
+        keycloak
+                .realm(REALM)
+                .groups()
+                .add(group);
+        return "the group created";
+    }
 
+    public String assignRolesToGroup(AssignRolesToGroupDto assignRolesToGroupDto){
+        for(String obj : assignRolesToGroupDto.getRoles()){
+            RoleRepresentation groupRole = keycloak.realm(REALM).roles().get(obj).toRepresentation();
+            List<RoleRepresentation> list = new ArrayList<>();
+            list.add(groupRole);
+            keycloak.realm(REALM).groups().group(assignRolesToGroupDto.getGroupId()).roles().realmLevel().add(list);
+        }
+        return "roles added to the group";
+    }
 
+    public String assignUsersToGroup(AssignUserToGroups assignUserToGroups){
+            Optional<UserRepresentation> user = keycloak.realm(REALM).users().search(assignUserToGroups.getUsername()).stream()
+                    .filter(u -> u.getUsername().equals(assignUserToGroups.getUsername())).findFirst();
+            if (user.isPresent()) {
+                for(String groupId : assignUserToGroups.getGroupsId()){
+                    GroupRepresentation groupRepresentation = keycloak.realm(REALM).groups().group(groupId).toRepresentation();
+                    user.get().setGroups(assignUserToGroups.getGroupsId());
+                }
+                return "user updated successfully";
+            } else {
+                return "user not updated";
+            }
+    }
 
 }
