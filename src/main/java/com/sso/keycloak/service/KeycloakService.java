@@ -48,7 +48,7 @@ public class KeycloakService {
 
 
     @Autowired
-    public KeycloakService(Keycloak keycloak , UserMapper userMapper) {
+    public KeycloakService(Keycloak keycloak, UserMapper userMapper) {
         this.keycloak = keycloak;
         this.userMapper = userMapper;
 
@@ -98,39 +98,40 @@ public class KeycloakService {
 
     public UserDTO createUserInKeyCloak(UserDTO userDTO) {
         int statusId = 0;
-            RealmResource realmResource = keycloak.realm(REALM);
-            UsersResource userRessource = realmResource.users();
-            UserRepresentation user = new UserRepresentation();
-            user.setUsername(userDTO.getUsername());
-            user.setEmail(userDTO.getEmailAddress());
-            user.setFirstName(userDTO.getFirstName());
-            user.setLastName(userDTO.getLastName());
-            user.setEnabled(true);
-            Map<String , List<String>> attr = generateAttributes(userDTO);
-            user.setAttributes(attr);
-            // Create user
-            Response result = userRessource.create(user);
-            System.out.println("Keycloak create user response code>>>>" + result.getStatus());
-            statusId = result.getStatus();
-            if (statusId == 201) {
-                String userId = result.getLocation().getPath().replaceAll(".*/([^/]+)$", "$1");
-                System.out.println("User created with userId:" + userId);
-                // Define password credential
-                CredentialRepresentation passwordCred = new CredentialRepresentation();
-                passwordCred.setTemporary(false);
-                passwordCred.setType(CredentialRepresentation.PASSWORD);
-                passwordCred.setValue(userDTO.getPassword());
-                // Set password credential
-                userRessource.get(userId).resetPassword(passwordCred);
-                RoleRepresentation savedRoleRepresentation = realmResource.roles().get("user").toRepresentation();
-                realmResource.users().get(userId).roles().realmLevel().add(Arrays.asList(savedRoleRepresentation));
-                System.out.println("Username==" + userDTO.getUsername() + " created in keycloak successfully");
-                return userDTO;
-            } else if (statusId == 409) {
-                throw new CustomException(409 , "the user is currently exists");
-            } else {
-                throw new CustomException(statusId , "the user could not be created in keycloak");
-            }
+        RealmResource realmResource = keycloak.realm(REALM);
+        UsersResource userRessource = realmResource.users();
+        UserRepresentation user = new UserRepresentation();
+        user.setUsername(userDTO.getUsername());
+        user.setEmail(userDTO.getEmailAddress());
+        user.setFirstName(userDTO.getFirstName());
+        user.setLastName(userDTO.getLastName());
+        user.setEnabled(true);
+        Map<String, List<String>> attr = generateAttributes(userDTO);
+        user.setAttributes(attr);
+        // Create user
+        Response result = userRessource.create(user);
+        System.out.println("Keycloak create user response code>>>>" + result.getStatus());
+        statusId = result.getStatus();
+        if (statusId == 201) {
+            String userId = result.getLocation().getPath().replaceAll(".*/([^/]+)$", "$1");
+            System.out.println("User created with userId:" + userId);
+            // Define password credential
+            CredentialRepresentation passwordCred = new CredentialRepresentation();
+            passwordCred.setTemporary(false);
+            passwordCred.setType(CredentialRepresentation.PASSWORD);
+            passwordCred.setValue(userDTO.getPassword());
+            // Set password credential
+            userRessource.get(userId).resetPassword(passwordCred);
+
+            RoleRepresentation savedRoleRepresentation = realmResource.roles().get("user").toRepresentation();
+            realmResource.users().get(userId).roles().realmLevel().add(Arrays.asList(savedRoleRepresentation));
+            System.out.println("Username==" + userDTO.getUsername() + " created in keycloak successfully");
+            return userDTO;
+        } else if (statusId == 409) {
+            throw new CustomException(409, "the user is currently exists");
+        } else {
+            throw new CustomException(statusId, "the user could not be created in keycloak");
+        }
     }
 
     public String getByRefreshToken(String refreshToken) {
@@ -193,10 +194,10 @@ public class KeycloakService {
         return "the user deleted successfully";
     }
 
-    public List<UserDTO> getAllUsers(){
-        List<UserRepresentation>  userRepresentations = keycloak.realm(REALM).users().list();
+    public List<UserDTO> getAllUsers() {
+        List<UserRepresentation> userRepresentations = keycloak.realm(REALM).users().list();
         List<UserDTO> users = new ArrayList<>();
-        userRepresentations.forEach(s ->users.add(userMapper.toUserDto(s)));
+        userRepresentations.forEach(s -> users.add(userMapper.toUserDto(s)));
         return users;
     }
 
@@ -234,8 +235,7 @@ public class KeycloakService {
     }
 
 
-
-    public String updateRealmRole(String previousRole , String nextRole) {
+    public String updateRealmRole(String previousRole, String nextRole) {
         if (!getAllRoles().contains(nextRole)) {
             RoleRepresentation roleRep = new RoleRepresentation();
             roleRep.setName(nextRole);
@@ -248,14 +248,14 @@ public class KeycloakService {
     public List<String> getRolesOfUser(UserCredentials userCredentials) {
         Optional<UserRepresentation> user = keycloak.realm(REALM).users().search(userCredentials.getUsername()).stream()
                 .filter(u -> u.getUsername().equals(userCredentials.getUsername())).findFirst();
-        if(user.isPresent()){
+        if (user.isPresent()) {
             UserRepresentation userRepresentation = user.get();
             return userRepresentation.getRealmRoles();
         }
         return null;
     }
 
-    public String updateUser(UserDTO userDTO){
+    public String updateUser(UserDTO userDTO) {
 
         Optional<UserRepresentation> user = keycloak.realm(REALM).users().search(userDTO.getUsername()).stream()
                 .filter(u -> u.getUsername().equals(userDTO.getUsername())).findFirst();
@@ -263,7 +263,7 @@ public class KeycloakService {
             UserRepresentation userRepresentation = user.get();
             UserResource userResource = keycloak.realm(REALM).users().get(userRepresentation.getId());
             Map<String, List<String>> attributes = new HashMap<>();
-            attributes.put("description", Arrays.asList(userDTO.getUsername()+" updated in"+ new Date()));
+            attributes.put("description", Arrays.asList(userDTO.getUsername() + " updated in" + new Date()));
             userRepresentation.setAttributes(attributes);
             userRepresentation.setEmail(userDTO.getEmailAddress());
             userRepresentation.setFirstName(userDTO.getFirstName());
@@ -275,13 +275,13 @@ public class KeycloakService {
         }
     }
 
-    public UserDTO getUserById(String userName){
-        UserRepresentation userRepresentation  = keycloak.realm(REALM).users().search(userName).get(0);
+    public UserDTO getUserById(String userName) {
+        UserRepresentation userRepresentation = keycloak.realm(REALM).users().search(userName).get(0);
         return userMapper.toUserDto(userRepresentation);
     }
 
-    private Map<String  , List<String>> generateAttributes(UserDTO userDTO){
-        Map<String  , List<String>> att = new HashMap<>();
+    private Map<String, List<String>> generateAttributes(UserDTO userDTO) {
+        Map<String, List<String>> att = new HashMap<>();
         List<String> telephone = new ArrayList<>();
         telephone.add(userDTO.getTelephone());
         List<String> preferredLocal = new ArrayList<>();
@@ -298,20 +298,20 @@ public class KeycloakService {
         accessProfile.add(userDTO.getAccessProfile());
         List<String> notificationPreference = new ArrayList<>();
         notificationPreference.add(userDTO.getNotificationPreference());
-        att.put("telephone" , telephone);
-        att.put("preferredLocal" , preferredLocal);
-        att.put("accessibleViaMobile" , accessibleViaMobile);
-        att.put("fax" , fax);
-        att.put("mobile" , mobile);
-        att.put("profile" , profile);
-        att.put("accessProfile" , accessProfile);
-        att.put("notificationPreference" , notificationPreference);
+        att.put("telephone", telephone);
+        att.put("preferredLocal", preferredLocal);
+        att.put("accessibleViaMobile", accessibleViaMobile);
+        att.put("fax", fax);
+        att.put("mobile", mobile);
+        att.put("profile", profile);
+        att.put("accessProfile", accessProfile);
+        att.put("notificationPreference", notificationPreference);
         return att;
     }
 
 
-    public String enableDisableUser(String username , boolean enable){
-        UserRepresentation userRepresentation  = keycloak.realm(REALM).users().search(username).get(0);
+    public String enableDisableUser(String username, boolean enable) {
+        UserRepresentation userRepresentation = keycloak.realm(REALM).users().search(username).get(0);
 
         if (userRepresentation != null) {
             UserResource userResource = keycloak.realm(REALM).users().get(userRepresentation.getId());
@@ -324,12 +324,12 @@ public class KeycloakService {
     }
 
 
-    public List<GroupRepresentation> getAllGroups(){
+    public List<GroupRepresentation> getAllGroups() {
         return keycloak.realm(REALM).groups().groups();
     }
 
-    public String createGroup(String name){
-        GroupRepresentation group = new  GroupRepresentation();
+    public String createGroup(String name) {
+        GroupRepresentation group = new GroupRepresentation();
         group.setName(name);
         keycloak
                 .realm(REALM)
@@ -338,8 +338,8 @@ public class KeycloakService {
         return "the group created";
     }
 
-    public String assignRolesToGroup(AssignRolesToGroupDto assignRolesToGroupDto){
-        for(String obj : assignRolesToGroupDto.getRoles()){
+    public String assignRolesToGroup(AssignRolesToGroupDto assignRolesToGroupDto) {
+        for (String obj : assignRolesToGroupDto.getRoles()) {
             RoleRepresentation groupRole = keycloak.realm(REALM).roles().get(obj).toRepresentation();
             List<RoleRepresentation> list = new ArrayList<>();
             list.add(groupRole);
@@ -348,18 +348,18 @@ public class KeycloakService {
         return "roles added to the group";
     }
 
-    public String assignUsersToGroup(AssignUserToGroups assignUserToGroups){
-            Optional<UserRepresentation> user = keycloak.realm(REALM).users().search(assignUserToGroups.getUsername()).stream()
-                    .filter(u -> u.getUsername().equals(assignUserToGroups.getUsername())).findFirst();
-            if (user.isPresent()) {
-                for(String groupId : assignUserToGroups.getGroupsId()){
-                    GroupRepresentation groupRepresentation = keycloak.realm(REALM).groups().group(groupId).toRepresentation();
-                    user.get().setGroups(assignUserToGroups.getGroupsId());
-                }
-                return "user updated successfully";
-            } else {
-                return "user not updated";
+    public String assignUsersToGroup(AssignUserToGroups assignUserToGroups) {
+        Optional<UserRepresentation> user = keycloak.realm(REALM).users().search(assignUserToGroups.getUsername()).stream()
+                .filter(u -> u.getUsername().equals(assignUserToGroups.getUsername())).findFirst();
+        if (user.isPresent()) {
+            for (String groupId : assignUserToGroups.getGroupsId()) {
+                GroupRepresentation groupRepresentation = keycloak.realm(REALM).groups().group(groupId).toRepresentation();
+                user.get().setGroups(assignUserToGroups.getGroupsId());
             }
+            return "user updated successfully";
+        } else {
+            return "user not updated";
+        }
     }
 
 }

@@ -6,7 +6,6 @@ public class CustomException extends RuntimeException{
     private String exception;
 
     public CustomException(int statusCode , String exception){
-        super();
         this.exception = exception;
         this.statusCode = statusCode;
     }
