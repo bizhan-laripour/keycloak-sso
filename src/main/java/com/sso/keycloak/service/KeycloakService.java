@@ -4,6 +4,7 @@ import com.sso.keycloak.dto.*;
 import com.sso.keycloak.exception.CustomException;
 import com.sso.keycloak.mapper.UserMapper;
 import org.apache.http.HttpResponse;
+import org.apache.http.HttpStatus;
 import org.apache.http.NameValuePair;
 import org.apache.http.client.HttpClient;
 import org.apache.http.client.entity.UrlEncodedFormEntity;
@@ -11,7 +12,6 @@ import org.apache.http.client.methods.HttpPost;
 import org.apache.http.impl.client.HttpClientBuilder;
 import org.apache.http.message.BasicNameValuePair;
 import org.keycloak.admin.client.Keycloak;
-import org.keycloak.admin.client.resource.GroupResource;
 import org.keycloak.admin.client.resource.RealmResource;
 import org.keycloak.admin.client.resource.UserResource;
 import org.keycloak.admin.client.resource.UsersResource;
@@ -54,7 +54,7 @@ public class KeycloakService {
 
     }
 
-    public String assignRoleToUser(AssignRoleDto assignRoleDto) {
+    public String assignRealmRoleToUser(AssignRoleDto assignRoleDto) {
         String userId = keycloak
                 .realm(REALM)
                 .users()
@@ -77,11 +77,22 @@ public class KeycloakService {
     }
 
 
-    public List<String> getAllRoles() {
+    public List<String> getAllRealmRoles() {
+        List<String> availableRoles = keycloak
+                .realm(REALM)
+                .roles()
+                .list()
+                .stream()
+                .map(role -> role.getName())
+                .collect(Collectors.toList());
+        return availableRoles;
+    }
+
+    public List<String> getAllClientRoles(String clientId) {
         ClientRepresentation clientRep = keycloak
                 .realm(REALM)
                 .clients()
-                .findByClientId(CLIENTID)
+                .findByClientId(clientId)
                 .get(0);
         List<String> availableRoles = keycloak
                 .realm(REALM)
@@ -122,9 +133,6 @@ public class KeycloakService {
             passwordCred.setValue(userDTO.getPassword());
             // Set password credential
             userRessource.get(userId).resetPassword(passwordCred);
-
-            RoleRepresentation savedRoleRepresentation = realmResource.roles().get("user").toRepresentation();
-            realmResource.users().get(userId).roles().realmLevel().add(Arrays.asList(savedRoleRepresentation));
             System.out.println("Username==" + userDTO.getUsername() + " created in keycloak successfully");
             return userDTO;
         } else if (statusId == 409) {
@@ -225,7 +233,7 @@ public class KeycloakService {
     }
 
     public String addRealmRole(String role) {
-        if (!getAllRoles().contains(role)) {
+        if (!getAllRealmRoles().contains(role)) {
             RoleRepresentation roleRep = new RoleRepresentation();
             roleRep.setName(role);
             roleRep.setDescription("role_" + role);
@@ -234,9 +242,62 @@ public class KeycloakService {
         return "role added to keycloak";
     }
 
+    public String addClientRole(String clientId, String role) {
+        if (!getAllClientRoles(clientId).contains(role)) {
+            RoleRepresentation roleRep = new RoleRepresentation();
+            roleRep.setName(role);
+            roleRep.setDescription("role_" + role);
+            ClientRepresentation clientRep = keycloak
+                    .realm(REALM)
+                    .clients()
+                    .findByClientId(clientId)
+                    .get(0);
+            keycloak.realm(REALM)
+                    .clients()
+                    .get(clientRep.getId())
+                    .roles()
+                    .create(roleRep);
+            return "client role added successfully";
+        } else {
+            throw new CustomException(HttpStatus.SC_BAD_REQUEST, "the client role is already exists");
+        }
+    }
+
+
+
+    public String assignClientRoleToUser(AssignClientRoleToUserDto role) {
+        String client_id = keycloak
+                .realm(REALM)
+                .clients()
+                .findByClientId(role.getClientId())
+                .get(0)
+                .getId();
+        String userId = keycloak
+                .realm(REALM)
+                .users()
+                .search(role.getUsername())
+                .get(0)
+                .getId();
+        UserResource user = keycloak
+                .realm(REALM)
+                .users()
+                .get(userId);
+        List<RoleRepresentation> roleToAdd = new LinkedList<>();
+        roleToAdd.add(keycloak
+                .realm(REALM)
+                .clients()
+                .get(client_id)
+                .roles()
+                .get(role.getRole())
+                .toRepresentation()
+        );
+        user.roles().clientLevel(client_id).add(roleToAdd);
+        return "client role assigned to the user successfully";
+    }
+
 
     public String updateRealmRole(String previousRole, String nextRole) {
-        if (!getAllRoles().contains(nextRole)) {
+        if (!getAllRealmRoles().contains(nextRole)) {
             RoleRepresentation roleRep = new RoleRepresentation();
             roleRep.setName(nextRole);
             roleRep.setDescription("role_" + nextRole);
@@ -250,9 +311,44 @@ public class KeycloakService {
                 .filter(u -> u.getUsername().equals(userCredentials.getUsername())).findFirst();
         if (user.isPresent()) {
             UserRepresentation userRepresentation = user.get();
-            return userRepresentation.getRealmRoles();
+            UserResource userResource = keycloak.realm(REALM).users().get(userRepresentation.getId());
+            return user.get().getRealmRoles();
         }
         return null;
+    }
+
+    public List<Module> getRolesOfAUser(UserCredentials userCredentials) {
+        Optional<UserRepresentation> user = keycloak.realm(REALM).users().search(userCredentials.getUsername()).stream()
+                .filter(u -> u.getUsername().equals(userCredentials.getUsername())).findFirst();
+        if (user.isPresent()) {
+            UserRepresentation userRepresentation = user.get();
+            UserResource userResource = keycloak.realm(REALM).users().get(userRepresentation.getId());
+            List<ClientRepresentation> clientRepresentations = keycloak.realm(REALM).clients().findAll();
+            List<Module> modules = new ArrayList<>();
+            for (ClientRepresentation obj : clientRepresentations) {
+                List<RoleRepresentation> roles = userResource.roles().clientLevel(obj.getId()).listAll();
+                if (roles.size() != 0) {
+                    Module module = new Module();
+                    List<ModulePrivilege> modulePrivileges = new ArrayList<>();
+                    for (RoleRepresentation roleRepresentation : roles) {
+                        ModulePrivilege privilege = new ModulePrivilege();
+                        privilege.setName(roleRepresentation.getName());
+                        privilege.setDescription(roleRepresentation.getDescription());
+                        privilege.setId(roleRepresentation.getId());
+                        modulePrivileges.add(privilege);
+                    }
+                    module.setModulePrivileges(modulePrivileges);
+                    module.setModuleName(obj.getClientId());
+                    if(modulePrivileges.size() > 0){
+                        module.setAvailable(true);
+                    }
+                    modules.add(module);
+                }
+            }
+            return modules;
+        } else {
+            throw new CustomException(HttpStatus.SC_BAD_REQUEST, "the user not found");
+        }
     }
 
     public String updateUser(UserDTO userDTO) {

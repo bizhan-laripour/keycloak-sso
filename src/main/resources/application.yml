@@ -1,0 +1,8 @@
+#eureka:
+#  instance:
+#    prefer-ip-address: true
+#    lease-renewal-interval-in-seconds: 1
+#    lease-expiration-duration-in-seconds: 2
+#  client:
+#    service-url:
+#      defaultZone: http://${eurekaconfig.user}:${eurekaconfig.pass}@${tpd.appconfig.peer1-address}/eureka/,http://${eurekaconfig.user}:${eurekaconfig.pass}@${tpd.appconfig.peer2-address}/eureka/

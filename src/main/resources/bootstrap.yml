@@ -1,0 +1,13 @@
+#spring:
+#  application:
+#    name: user-management-service
+#  main:
+#    allow-bean-definition-overriding: true
+#cloud:
+#  config:
+#    uri: http://config-server:8888
+#    username: '{cipher}c2d015253d296d874d918cae8b904a36e9fb783402c5a6c2de662da434b7e494'
+#    password: '{cipher}6099774756a8182e0514c12c35804b461892a75db96b8ac0eb0999ed4a5f158f'
+#
+#encrypt:
+#  key: SecretKeyVeryImportatnt

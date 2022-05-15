@@ -1,8 +1,0 @@
-com/sso/keycloak/dto/UserDTO.class
-com/sso/keycloak/dto/UserCredentials.class
-com/sso/keycloak/service/KeycloakService.class
-com/sso/keycloak/mapper/UserMapper.class
-com/sso/keycloak/dto/AssignRoleDto.class
-com/sso/keycloak/controller/LoginController.class
-com/sso/keycloak/Main.class
-com/sso/keycloak/controller/KeycloakController.class

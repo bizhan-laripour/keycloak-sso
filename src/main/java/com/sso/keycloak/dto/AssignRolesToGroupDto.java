@@ -5,8 +5,9 @@ import java.util.List;
 public class AssignRolesToGroupDto {
 
     private String groupId;
-
     private List<String> roles;
+
+
 
     public String getGroupId() {
         return groupId;

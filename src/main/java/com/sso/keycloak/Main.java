@@ -9,7 +9,8 @@ import org.springframework.boot.autoconfigure.SpringBootApplication;
 import org.springframework.context.annotation.Bean;
 
 @SpringBootApplication
-public class Main {
+//@EnableEurekaClient
+public class  Main {
 
 
     @Value("${keycloak.credentials.secret}")
@@ -23,6 +24,10 @@ public class Main {
 
     @Value("${keycloak.realm}")
     private String REALM;
+    @Value("${username}")
+    private String USERNAME;
+    @Value("${password}")
+    private String PASSWORD;
 
     public static void main(String[] args) {
         SpringApplication.run(Main.class , args);
@@ -35,7 +40,8 @@ public class Main {
                 .realm(REALM)
                 .clientId(CLIENTID)
                 .username("admin")
-                .password("123!@#qwe")
+                .password("123")
+//                .password("123!@#qwe")
                 .grantType("password")
                 .clientSecret(SECRETKEY)
                 .resteasyClient(
@@ -43,4 +49,7 @@ public class Main {
                                 .connectionPoolSize(10).build()
                 ).build();
     }
+
+
+
 }
