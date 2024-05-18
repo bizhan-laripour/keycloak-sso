@@ -121,7 +121,6 @@ public class KeycloakController {
         return new ResponseEntity<>(keycloakService.assignClientRoleToUser(assignClientRoleToUserDto) , HttpStatus.OK);
     }
 
-
     /**
      * this api is for updating a user
      * @param userDTO
