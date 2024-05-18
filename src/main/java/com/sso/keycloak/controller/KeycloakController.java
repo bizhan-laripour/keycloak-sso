@@ -139,7 +139,6 @@ public class KeycloakController {
         return new ResponseEntity<>(keycloakService.updateRealmRole(previousRole, nextRole), HttpStatus.OK);
     }
 
-
     @RequestMapping(value = "general-create-user", method = RequestMethod.POST)
     public ResponseEntity<?> generalCreateUser(UserDTO userDTO) {
         return null;
