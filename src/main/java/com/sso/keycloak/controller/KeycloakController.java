@@ -193,5 +193,4 @@ public class KeycloakController {
             throw new CustomException(500 , exception.getMessage());
         }
     }
-
 }
