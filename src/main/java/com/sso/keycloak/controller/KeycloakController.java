@@ -39,7 +39,6 @@ public class KeycloakController {
         return new ResponseEntity<>(keycloakService.assignRealmRoleToUser(assignRoleDto), HttpStatus.OK);
     }
 
-
     /**
      * this api gets all realm roles
      * or get all work group classes in realm
